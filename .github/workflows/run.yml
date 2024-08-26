@@ -139,7 +139,7 @@ jobs:
 
           # Generate `clash` rule-set (text)
           for ((i = 0; i < 17; i++)); do
-            curl -sSL "${domains_download_url}/${domains[i]}.list" | grep -E 'DOMAIN,|DOMAIN-SUFFIX,' | sed -e 's/^DOMAIN,//' -e 's/^DOMAIN-SUFFIX,/+\./' > "./clash-ruleset/${domains[i]}.list"
+            curl -sSL "${domains_download_url}/${domains[i]}.list" | grep -E 'DOMAIN,|DOMAIN-SUFFIX,' > "./clash-ruleset/${domains[i]}.list"
           done
           curl -sSL "${domains_download_url}/fakeip-filter.list" | sed -e 's/^DOMAIN,//' -e 's/^DOMAIN-SUFFIX,/+\./' -e 's/^DOMAIN-REGEX,//' -e 's/^\.//' > ./clash-ruleset/fakeip-filter.list
 
@@ -148,7 +148,7 @@ jobs:
           done
 
           for ((i = 0; i < 4; i++)); do
-            curl -sSL "${ips_download_url}/${ips[i]}.list" | grep 'IP-CIDR' | sed -e 's/^IP-CIDR,//' -e 's/^IP-CIDR6,//' > "./clash-ruleset/${ips[i]}.list"
+            curl -sSL "${ips_download_url}/${ips[i]}.list" | grep 'IP-CIDR' > "./clash-ruleset/${ips[i]}.list"
           done
 
           # Ready for generate `clash` rule-set (mrs)
