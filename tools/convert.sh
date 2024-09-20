@@ -103,5 +103,5 @@ for ((i = 0; i < ${#list[@]}; i++)); do
 	rm -rf ${list[i]}
 
  	# 编译成 .srs 格式
-	./sing-box rule-set compile ${list[i]}.json -o ${list[i]}.srs
+	./sing-box rule-set compile --output ${list[i]}.srs ${list[i]}.json
 done
