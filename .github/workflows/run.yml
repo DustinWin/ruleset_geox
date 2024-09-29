@@ -58,8 +58,8 @@ jobs:
       - name: Generate `clash` geodata
         run: |
           mkdir -p ./community/mydata/
-          archs1=(ads private microsoft-cn apple-cn google-cn games-cn ai networktest netflix disney max primevideo appletv youtube tiktok bilibili proxy cn)
-          archs2=(ads private microsoft-cn apple-cn google-cn games-cn ai networktest proxy cn)
+          archs1=(private ads microsoft-cn apple-cn google-cn games-cn ai networktest netflix disney max primevideo appletv youtube tiktok bilibili proxy cn)
+          archs2=(private ads microsoft-cn apple-cn google-cn games-cn ai networktest proxy cn)
 
           # Generate `clash` geosite-all.dat
           for ((i = 0; i < 18; i++)); do
@@ -114,8 +114,8 @@ jobs:
 
       - name: Generate `clash` rule-set
         run: |
-          mkdir -p ./clash-ruleset/ ./sing-box-ruleset/
-          domains=(ads private microsoft-cn apple-cn google-cn games-cn ai netflix disney max primevideo appletv youtube tiktok bilibili proxy cn)
+          mkdir -p ./clash-ruleset/ ./sing-box-ruleset/ ./sing-box-ruleset-compatible/
+          domains=(private ads microsoft-cn apple-cn google-cn games-cn ai netflix disney max primevideo appletv youtube tiktok bilibili proxy cn)
           archs=(applications networktest)
           ips=(netflixip telegramip privateip cnip)
 
@@ -182,10 +182,10 @@ jobs:
             curl -sSL "${ips_download_url}/${ips[i]}.list"| grep 'IP-CIDR' > "./tools/rules/${ips[i]}/${ips[i]}.yaml"
           done
 
-      - name: Download and unzip `mihomo core`
+      - name: Download and unzip `mihomo` core
         run: |
-          mihomo_version=$(curl -sSL https://api.github.com/repos/MetaCubeX/mihomo/releases | grep 'tag_name' | grep -v 'Alpha' | head -n 1 | sed -e 's/.*v/v/' -e 's/".*//')
-          curl -sSL "https://github.com/MetaCubeX/mihomo/releases/download/${mihomo_version}/mihomo-linux-amd64-${mihomo_version}.gz" | gzip -d > ./tools/mihomo
+          wget https://github.com/DustinWin/clash_singbox-tools/releases/download/mihomo/mihomo-alpha-linux-amd64.tar.gz -O - | tar -zxf - -C ./tools/
+          mv -f ./tools/CrashCore ./tools/mihomo
 
       - name: Generate `clash` rule-set (mrs)
         run: |
@@ -202,18 +202,29 @@ jobs:
           done
           rm -rf ./mihomo* ./domains/ ./ips/
 
-      - name: Download and unzip `sing-box core`
+      - name: Download and unzip `sing-box` core
         run: |
-          sing_box_version=$(curl -sSL https://api.github.com/repos/SagerNet/sing-box/releases | grep 'tag_name' | grep 'alpha' | head -n 1 | sed -e 's/.*v//' -e 's/".*//')
-          wget "https://github.com/SagerNet/sing-box/releases/download/v${sing_box_version}/sing-box-${sing_box_version}-linux-amd64v3.tar.gz" -O - | tar -zxf - -C ./tools/
-          mv -f ./tools/sing-box-${sing_box_version}-linux-amd64v3/sing-box ./tools/
+          wget https://github.com/DustinWin/clash_singbox-tools/releases/download/sing-box/sing-box-dev-linux-amd64v3.tar.gz -O - | tar -zxf - -C ./tools/
+          mv -f ./tools/CrashCore ./tools/sing-box
 
       - name: Generate `sing-box` rule_set
         run: |
           cd ./tools/
-          chmod +x convert.sh && ./convert.sh
-          rm -rf ./sing-box* LICENSE ./rules*
+          chmod +x ./convert.sh && ./convert.sh
+          rm -rf ./sing-box*
           mv -f ./*.json ./*.srs ../sing-box-ruleset/
+
+      - name: Download and unzip `sing-box` core(compatible)
+        run: |
+          wget https://github.com/DustinWin/clash_singbox-tools/releases/download/sing-box/sing-box-release-linux-amd64v3.tar.gz -O - | tar -zxf - -C ./tools/
+          mv -f ./tools/CrashCore ./tools/sing-box
+
+      - name: Generate `sing-box` rule_set(compatible)
+        run: |
+          cd ./tools/
+          chmod +x ./convert_compatible.sh && ./convert_compatible.sh
+          rm -rf ./sing-box* ./rules*
+          mv -f ./*.json ./*.srs ../sing-box-ruleset-compatible/
 
       - name: Release and upload `clash` assets
         uses: svenstaro/upload-release-action@v2
@@ -305,6 +316,28 @@ jobs:
           git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
           git push -f -u origin sing-box-ruleset
 
+      - name: Release and upload `sing-box-ruleset-compatible` assets
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          release_name: sing-box-ruleset-compatible
+          tag: sing-box-ruleset-compatible
+          overwrite: true
+          body: "sing-box ruleset 规则集文件，包含 .srs 和 .json 格式"
+          file_glob: true
+          file: ./sing-box-ruleset-compatible/*
+
+      - name: Commit and push `sing-box-ruleset-compatible` branch
+        run: |
+          cd ./sing-box-ruleset-compatible/ || exit 1
+          git init
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git checkout -b sing-box-ruleset-compatible
+          git add . && git commit -m "sing-box rule_set 规则集文件更新于 ${update_version}"
+          git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+          git push -f -u origin sing-box-ruleset-compatible
+
       - name: Purge jsDelivr CDN
         run: |
           cd ./clash/ || exit 1
@@ -322,6 +355,10 @@ jobs:
           cd ../sing-box-ruleset/ || exit 1
           for file in $(ls); do
             curl -i "https://purge.jsdelivr.net/gh/${{ github.repository }}@sing-box-ruleset/${file}"
+          done
+          cd ../sing-box-ruleset-compatible/ || exit 1
+          for file in $(ls); do
+            curl -i "https://purge.jsdelivr.net/gh/${{ github.repository }}@sing-box-ruleset-compatible/${file}"
           done
 
       - name: Delete old workflow runs
